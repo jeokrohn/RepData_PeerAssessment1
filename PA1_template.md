@@ -1,42 +1,5 @@
 # Reproducible Research: Peer Assessment 1
 
-```r
-# Base functions
-drawHist <- function (data, ...){
-    # draw histogram
-    hist (data, ...)
-    
-    # add mean and median
-    mean<-mean(data)
-    median<-median(data)
-    abline(v=mean,col="blue")
-    abline(v=median,col="red")
-    legend("topright",col=c("blue","red"),
-           legend=c(paste ("Mean", format (mean,nsmall=2, scientific=FALSE)), 
-                    paste("Median", format (median,nsmall=2, scientific=FALSE))),
-           lty=1)   
-    }
-
-doActivityPlot <- function (data, ...){
-    # sequence modeling the X axis
-    ts<-seq(as.POSIXct("2014-01-01 00:00:00"), as.POSIXct("2014-01-01 23:55:00"),
-            as.difftime(5, units="mins") )
-    
-    # Plot the data
-    plot (data~ts,type="l",xlab="Time of day", ylab="Steps per 5 min interval", ...)
-    
-    # Add marker for max interval
-    maxI<-which.max(data)[[1]]
-    abline(v=ts[maxI], col="red")
-    legend("topright",col=c("black","red"),
-           legend=c("Steps per interval", 
-                    paste ("Maximum:", format(data[[maxI]], digits=0,scientific=FALSE), "steps at", 
-                           format (ts[maxI], "%H:%M", origin="1990-01-01"))), 
-           lty=1)
-    
-    }
-```
-
 ## Loading and preprocessing the data
 
 ```r
@@ -62,6 +25,22 @@ stepsPerDay<-with(data,tapply(steps,date,sum,na.rm=TRUE))
 Then a histogram can be created:
 
 ```r
+# Base functions
+drawHist <- function (data, ...){
+    # draw histogram
+    hist (data, ...)
+    
+    # add mean and median
+    mean<-mean(data)
+    median<-median(data)
+    abline(v=mean,col="blue")
+    abline(v=median,col="red")
+    legend("topright",col=c("blue","red"),
+           legend=c(paste ("Mean", format (mean,nsmall=2, scientific=FALSE)), 
+                    paste("Median", format (median,nsmall=2, scientific=FALSE))),
+           lty=1)   
+    }
+
 drawHist (stepsPerDay, xlab="Steps per Day", 
           main="Steps per day")
 ```
@@ -82,7 +61,21 @@ actPat<-with(data,tapply(steps,interval,sum,na.rm=TRUE))
 # need to divide by number of days
 actPat<-actPat/length(unique(data$date))
 
-doActivityPlot (actPat, main="Activity per interval")
+# sequence modeling the X axis
+ts<-seq(as.POSIXct("2014-01-01 00:00:00"), as.POSIXct("2014-01-01 23:55:00"),
+        as.difftime(5, units="mins") )
+
+# Plot the data
+plot (actPat~ts,type="l",xlab="Time of day", ylab="Steps per 5 min interval")
+
+# Add marker for max interval
+maxI<-which.max(actPat)[[1]]
+abline(v=ts[maxI], col="red")
+legend("topright",col=c("black","red"),
+       legend=c("Steps per interval", 
+                paste ("Maximum:", format(actPat[[maxI]], digits=0,scientific=FALSE), "steps at", 
+                       format (ts[maxI], "%H:%M"))), 
+       lty=1)
 ```
 
 ![plot of chunk dailyactivity](figure/dailyactivity.png) 
@@ -173,21 +166,25 @@ drawHist (corr2StepsPerDay, xlab="Steps per Day",
 
 ```r
 # Create factor variable: "weekday/weekend
-data$weekend<-factor(weekdays(data$date))
-data$weekend<-factor(as.numeric(data$weekend)>5)
+# $wday of POSIXlt is number of day in week:
+# 0: Sunday, 1: Monday, ..., 6: Saturday
+data$weekend<-factor(as.POSIXlt(data$date)$wday %in% c(0,6))
 levels(data$weekend)=c("weekday","weekend")
 
-library(lattice)
+# Aggregate steps by 5 min interval and factor variable weekend
 aggData<-aggregate(corr2Steps,by=list(data$interval,data$weekend), FUN=sum, na.rm=TRUE)
 colnames(aggData)<-c("interval","weekend","steps")
 
 # convert interval to POSIXct
+# formatC used to get to fixed length numeric with leading zeroes
+# as.POSIXct interprets that as hours and minutes
 aggData$interval <-as.POSIXct(formatC(aggData$interval, width=4, flag="0"),format="%H%M")
 
-# Ticks in X axis: 00:00, 04:00, 08:00, ..., 00:00
-xTicks<-seq(from=aggData$interval[1], length.out=7, by="4 hour")
+# Ticks in X axis: 00:00, 03:00, 06:00, ..., 00:00
+xTicks<-seq(from=aggData$interval[1], length.out=9, by="3 hour")
 
 # Plot data
+library(lattice)
 xyplot(aggData$steps ~ aggData$interval|aggData$weekend,type="l",
        layout=(c(1,2)),xlab="Time of day", ylab="Steps per Interval",
        scales=list(
