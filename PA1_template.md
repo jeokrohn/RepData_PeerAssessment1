@@ -1,5 +1,6 @@
 # Reproducible Research: Peer Assessment 1
-```{r}
+
+```r
 # Base functions
 drawHist <- function (data, ...){
     # draw histogram
@@ -37,7 +38,8 @@ doActivityPlot <- function (data, ...){
 ```
 
 ## Loading and preprocessing the data
-```{r readdata}
+
+```r
 zipFile<-"activity.zip"
 # get the name of the 1st file in the ZIP
 dataFile<-unzip(zipFile,list=TRUE)[1]
@@ -52,15 +54,19 @@ data<-read.csv(unz,header=TRUE, sep=",",na.strings="NA",
 To calculate the mean of total number of steps per day we first have to 
 calculate the sum of steps per interval and group by day making sure that NA 
 values are ignored (assumed to be zero):
-```{r stepsPerDay}
+
+```r
 stepsPerDay<-with(data,tapply(steps,date,sum,na.rm=TRUE))
 ```
 
 Then a histogram can be created:
-```{r hist,fig.height=6}
+
+```r
 drawHist (stepsPerDay, xlab="Steps per Day", 
           main="Steps per day")
 ```
+
+![plot of chunk hist](figure/hist.png) 
 
 ## What is the average daily activity pattern?
 To determine the daily activity pattern we need to sum the recorded steps per 
@@ -68,7 +74,8 @@ time interval. For the plot we need X axis values covering the time intervals
 from 00:00 to 23:55 in 5 minute steps. We document the interval with the 
 maximum number of steps as a vertical line in the plot. The actual maximum is 
 displayed in the legend.
-```{r dailyactivity,fig.height=6}
+
+```r
 # sum steps per interval
 actPat<-with(data,tapply(steps,interval,sum,na.rm=TRUE))
 
@@ -78,17 +85,21 @@ actPat<-actPat/length(unique(data$date))
 doActivityPlot (actPat, main="Activity per interval")
 ```
 
+![plot of chunk dailyactivity](figure/dailyactivity.png) 
+
 
 ## Imputing missing values
-```{r missing}
+
+```r
 missing<-sum(is.na(data$steps))
 ```
-The dataset has `r missing` missing values for steps per interval. The previous assessment assumed 0 steps for each interval missing input data. To fill missing data we could
+The dataset has 2304 missing values for steps per interval. The previous assessment assumed 0 steps for each interval missing input data. To fill missing data we could
 * set the missing data to the average steps per interval of that day
 * set the missing data to the average steps per interval over all days
 
 ### Set missing data to the average steps per interval of a day
-```{r miss1,fig.height=6}
+
+```r
 # create array of average steps per day with same dimension as steps
 stepAverage<-stepsPerDay[format(data$date,"%Y-%m-%d")]/288
 # create copy of steps data
@@ -100,8 +111,9 @@ corr1Steps[is.na(data$steps)]<-stepAverage[is.na(data$steps)]
 corr1StepsPerDay<-tapply(corr1Steps,data$date,sum)
 drawHist (corr1StepsPerDay, xlab="Steps per Day", 
           main="Steps per day; missing data set to daily mean")
-
 ```
+
+![plot of chunk miss1](figure/miss1.png) 
 
 Interestingly this seems not to change the mean and median. The reason is that 
 the dataset always only has NA for all intervals of a day. There are no days 
@@ -109,13 +121,14 @@ that have valid data and only NAs for some intervals. Hence replacing NAs with
 the daily average (which is zero if only NAs exist for that day) doesn't change
 the situation. Also the daily total number of steps does not change as days w/o any recorded steps now continue to have no recorded steps;
 * Total number of steps in original dataset: 
-`r format(sum(data$steps,na.rm=TRUE),digits=0,scientific=FALSE)`
+570608
 * Total number of steps in dataset with missing values set to daily average: 
-`r format(sum(corr1Steps),digits=0,scientific=FALSE)`
+570608
 
 
 ### Set missing data to the mean of that 5 minute interval
-```{r miss2,fig.height=6}
+
+```r
 # create array of average steps per interval with same dimension as steps
 intMean<-actPat[format(data$interval,digits=0,trim=TRUE)]
 
@@ -128,20 +141,22 @@ corr2Steps[is.na(data$steps)]<-intMean[is.na(data$steps)]
 corr2StepsPerDay<-tapply(corr2Steps,data$date,sum)
 drawHist (corr2StepsPerDay, xlab="Steps per Day", 
           main="Steps per day; missing values set to interval mean")
-
 ```
+
+![plot of chunk miss2](figure/miss2.png) 
 
 This increases the mean as days w/o any activity now have activities
 at almost all intervals. The median stays the same as the daily activity for 
 days for which steps got added is less than the mean. Also the total number of 
 steps increases:
 * Total number of steps in original dataset: 
-`r format(sum(data$steps,na.rm=TRUE),digits=0,scientific=FALSE)`
+570608
 * Total number of steps in dataset with missing values set to interval average: 
-`r format(sum(corr2Steps),digits=0,scientific=FALSE)`
+645442
 
 Comparison of all histograms:
-```{r allHist,fig.height=18}
+
+```r
 par(mfrow=c(3,1))
 drawHist (stepsPerDay, xlab="Steps per Day", 
           main="Steps per day")
@@ -149,13 +164,14 @@ drawHist (corr1StepsPerDay, xlab="Steps per Day",
           main="Steps per day; missing data set to daily mean")
 drawHist (corr2StepsPerDay, xlab="Steps per Day", 
           main="Steps per day; missing values set to interval mean")
-
 ```
+
+![plot of chunk allHist](figure/allHist.png) 
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
-```{r weekdays}
 
+```r
 # Create factor variable: "weekday/weekend
 data$weekend<-factor(weekdays(data$date))
 data$weekend<-factor(as.numeric(data$weekend)>5)
@@ -182,3 +198,5 @@ xyplot(aggData$steps ~ aggData$interval|aggData$weekend,type="l",
            )
        )
 ```
+
+![plot of chunk weekdays](figure/weekdays.png) 
